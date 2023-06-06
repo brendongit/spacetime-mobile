@@ -12,8 +12,17 @@ import {
 } from "@expo-google-fonts/roboto";
 
 import { BaiJamjuree_700Bold } from "@expo-google-fonts/bai-jamjuree";
+import { makeRedirectUri, useAuthRequest } from "expo-auth-session";
+import { useEffect } from "react";
+import { api } from "./src/lib/api";
 
 const StyledStripes = styled(Stripes);
+
+const discovery = {
+  authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+  tokenEndpoint: 'https://github.com/login/oauth/access_token',
+  revocationEndpoint: 'https://github.com/settings/connections/applications/879d1d0219231a69da42',
+};
 
 export default function App() {
   const [hasLoadFonts] = useFonts({
@@ -22,9 +31,37 @@ export default function App() {
     BaiJamjuree_700Bold,
   });
 
+  const [request, response, signInWithGithub] = useAuthRequest(
+    {
+      clientId: '879d1d0219231a69da42',
+      scopes: ['identity'],
+      redirectUri: makeRedirectUri({
+        scheme: 'nlwspacetime'
+      }),
+    },
+    discovery
+  );
+
+  useEffect(() => {
+    
+    if (response?.type === 'success') {
+      const { code } = response.params;
+
+      api.post('/register', {
+        code,
+      }).then((response) => {
+        const { token } = response.data
+
+        console.log(token)
+      })
+
+    }
+  }, [response]);
+
   if (!hasLoadFonts) {
     return null;
   }
+
 
   return (
     <ImageBackground
@@ -46,6 +83,7 @@ export default function App() {
         </View>
 
         <TouchableOpacity
+          onPress={() => signInWithGithub()}
           activeOpacity={0.7}
           className="rounded-full bg-green-500 px-5 py-3"
         >
